@@ -1,6 +1,7 @@
 void setup() 
 {
   sut();
+  den();
 }
 
 void loop() {
