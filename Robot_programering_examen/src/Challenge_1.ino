@@ -1,2 +1,1 @@
-// here the first code will be written
-test
+// Made by Magnus
