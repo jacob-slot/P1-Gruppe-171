@@ -1,4 +1,5 @@
 //GODAV
 
-if jacob er sej
+if jacob_er_sej{
   ok
+  }
