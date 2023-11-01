@@ -1,4 +1,4 @@
 //GODAV
 
-if jacob er sej
-  ok
+if jacob har lille hånd
+  lille diller
