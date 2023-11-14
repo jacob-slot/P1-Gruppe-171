@@ -84,7 +84,7 @@ void turnRight() {
 void turnLeft() {
   //Controls the motors when going counter-clockwise around pilar
 
-  int distanceToStraightLeft = 2420;  //2360
+  int distanceToStraightLeft = 2420; 
   int straighDistanceLeft = 3450;
 
   if (proxSensors.countsLeftWithLeftLeds() > 65) {
