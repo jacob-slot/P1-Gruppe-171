@@ -8,8 +8,6 @@ Zumo32U4LineSensors lineSensors;
 Zumo32U4OLED display;
 
 int Stage = 0;
-#define NUM_SENSORS 6
-uint16_t lineSensorValues[NUM_SENSORS];
 
 void setup() {
 }
@@ -47,18 +45,18 @@ void wallTurn() {
   } else if (proxSensors.countsLeftWithLeftLeds() > proxSensors.countsRightWithRightLeds()) {
     if (proxSensors.countsLeftWithLeftLeds() || proxSensors.countsRightWithRightLeds() == 0) {
       if (proxSensors.countsFrontWithLeftLeds() > proxSensors.countsFrontWithRightLeds()) {
-        motors.setSpeeds(400, 200);
+        motors.setSpeeds(350, 200);
       }
     } else {
-      motors.setSpeeds(400, 200);
+      motors.setSpeeds(350, 200);
     }
   } else if (proxSensors.countsRightWithRightLeds() > proxSensors.countsLeftWithLeftLeds() || proxSensors.countsFrontWithRightLeds() > proxSensors.countsFrontWithLeftLeds()) {
     if (proxSensors.countsRightWithRightLeds() || proxSensors.countsLeftWithLeftLeds() == 0) {
       if (proxSensors.countsFrontWithRightLeds() > proxSensors.countsFrontWithLeftLeds()) {
-        motors.setSpeeds(200, 400);
+        motors.setSpeeds(200, 350);
       }
     } else {
-      motors.setSpeeds(200, 400);
+      motors.setSpeeds(200, 350);
     }
   } else {
 
