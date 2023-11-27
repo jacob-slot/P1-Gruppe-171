@@ -60,6 +60,6 @@ void wallTurn() {
     }
   } else {
 
-    motors.setSpeeds(400, 400);
+    motors.setSpeeds(350, 350);
   }
 }
