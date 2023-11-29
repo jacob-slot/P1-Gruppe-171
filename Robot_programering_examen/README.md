@@ -1,3 +1,4 @@
 Dette repo er til robot programerings eksamen
 I "LIB" ligger alle de libraries som er brugt.
-I "SRC" ligger alt den kode vi har lavet inklusiv masterfilen som samler det hele
+I "SRC" ligger alt den kode vi har lavet til de indiviudielle 7 programmer
+I "Main" ligger masterfilen som samler det hele
