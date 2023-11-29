@@ -253,7 +253,10 @@ void setup()
   // Init 3 linsensors
   lineSensors.initThreeSensors();
 
-  // Clear display
+  // Init encoders
+  encoders.init();
+
+  // Init display
   display.init();
   display.setLayout11x4();
 
