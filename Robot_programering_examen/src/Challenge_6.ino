@@ -1,411 +1,148 @@
-#include <Zumo32U4.h>
 #include <Wire.h>
+#include <Zumo32U4.h>
 
-// import from main lib
-Zumo32U4LineSensors lineSensors;
-Zumo32U4ButtonA buttonA;
-Zumo32U4Motors motors;
 Zumo32U4Encoders encoders;
 Zumo32U4IMU imu;
 Zumo32U4OLED lcd;
+Zumo32U4ButtonA buttonA;
+Zumo32U4Motors motors;
 
-#define NUM_SENSORS 3
-int16_t lineSensorValues[NUM_SENSORS];
+int const countJump = 100;
+int movementTurn = 0;   // used to select the degree turned
+int const maxAngle = 359; // max angle that can be turned
+int speed = 100; // max speed
 
-int lineSensorCal[3];
-int lineSensorCalT[3];
 
-int stage = 1;
-int side = 0;
-float angleLine;
-float distLine;
+// Gyro variables
+uint32_t turnAngle = 0;
+int16_t turnRate;
+int16_t gyroOffset;
+uint16_t gyroLastUpdate = 0;
 
-// Distance between linesensors
-float distSensor = 9;
 
-// Enconder counts for wheels
-int16_t countsLeft;
-int16_t countsRight;
-
-// Stuff needed for delta time
-int delta_time = 0;
-int last_time = 0;
-int time_now = 0;
-
-// Turn rate
-float turn_rate = 0;
-
-// Rotation
-float rotation_deg = 0;
-float accumulated_rotation_deg = 0.0;
-
-// threshold line
-int value = 500;
-
-// Gyro cal value
-int gyro_cal = 0;
-
-int32_t total = 0;
-
-int32_t start = 0;
-int t = 0;
-
-int error = 0;
-
-// Speeds for driving straight
-int16_t speedLeft = 110;
-int16_t speedRight = 110;
-
-int currentCount;
-
-// Read linesensors
-void readLineSensors() {
-  lineSensors.read(lineSensorValues, QTR_EMITTERS_ON);
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  turnSensorSetup();
+  delay(100);
 }
 
-void readEncoders() {
-  countsLeft = encoders.getCountsLeft();
-  countsRight = encoders.getCountsRight();
-}
-
-void resetEncoders() {
+//Resets encoders
+void resetEncoders(){
   encoders.getCountsAndResetLeft();
   encoders.getCountsAndResetRight();
 }
-
-float radToDeg(float i) {
-  return i * 180 / PI;
+//Read the encoder to get the degree
+void readEncodersDegree(){
+  movementTurn = movementTurn + encoders.getCountsRight();
+  resetEncoders();
+}
+//Function to print in the display
+void printLCD(String s0, String s1){
+  lcd.clear();
+  lcd.print(s0);
+  lcd.gotoXY(0,1);
+  lcd.print(s1);
 }
 
-int mapLeft() {
-  return map(lineSensorValues[0], lineSensorCal[0], lineSensorCalT[0], 0, 1000);
+void LCDSelectDegree(){
+  printLCD("Angle", (String)movementTurn);
 }
 
-int mapMiddel() {
-  return map(lineSensorValues[1], lineSensorCal[1], lineSensorCalT[1], 0, 1000);
-}
-
-int mapRight() {
-  return map(lineSensorValues[2], lineSensorCal[2], lineSensorCalT[2], 0, 1000);
-}
-
-void updateMotorsToDriveStraight() {
-
-  if (error < 0.0)  // if error < 0 zumo to far to the right
-  {
-    motors.setSpeeds(speedLeft, speedRight + abs(error) * 10);
-  } else  // if error > 0 zumo to far to the left
-  {
-    motors.setSpeeds(speedLeft + abs(error) * 10, speedRight);
+void turnByAngle(){
+  turnSensorReset();
+  selectAngle();
+  if (buttonA.isPressed()){
+    delay(100);
+  if (movementTurn>180){
+    motors.setSpeeds(100,-100);
+    while(getTurnAngleInDegrees()>movementTurn){
+      delay(10);
+    }
+  }
+  else{
+    motors.setSpeeds(-100,100);
+    while(getTurnAngleInDegrees()<movementTurn){
+      delay(10);
+    }
+  }
   }
 }
 
-int calGyro() {
+void turnSensorSetup()
+{
+  Wire.begin();
+  imu.init();
+  imu.enableDefault();
+  imu.configureForTurnSensing();
 
-  for (uint16_t i = 0; i < 3000; i++) {
+  lcd.clear();
+  lcd.print(F("Gyro cal"));
+
+  delay(500);
+
+  // Calibrate the gyro.
+  int32_t total = 0;
+  for (uint16_t i = 0; i < 1024; i++)
+  {
     // Wait for new data to be available, then read it.
-    while (!imu.gyroDataReady()) {}
+    while(!imu.gyroDataReady()) {}
     imu.readGyro();
 
     // Add the Z axis reading to the total.
     total += imu.g.z;
   }
-  return total / 3000;
-}
+  ledYellow(0);
+  gyroOffset = total / 1024;
 
-void turn() {
-  if (accumulated_rotation_deg > angleLine && angleLine < 0) {
-    motors.setSpeeds(-70, 70);
-  }
-
-  if (accumulated_rotation_deg < angleLine && angleLine > 0) {
-    motors.setSpeeds(70, -70);
-  }
-
-  if (abs(accumulated_rotation_deg + angleLine) < 0.25) {
-    motors.setSpeeds(0, 0);
-
-    stage = 5;
-    t = 0;
-    delay(1000);
-    turnByAngle(currentCount);
-  }
-}
-
-
-
-void allign() {
-
-  // Move forward
-  motors.setSpeeds(70, 70);
-
-  while (stage < 4) {
-
-    // Read sensors
-    readLineSensors();
-
-    // Stage 1
-    if (mapLeft() > value && stage == 1) {
-      resetEncoders();
-      stage = 2;
-      side = 1;
-      Serial.println(stage);
-    }
-
-    if (mapRight() > value && stage == 1) {
-      resetEncoders();
-      stage = 2;
-      side = 2;
-      Serial.println(stage);
-    }
-
-    // Stage 2
-    if (side == 1 && mapRight() > 450 && stage == 2) {
-      readEncoders();
-      motors.setSpeeds(0, 0);
-      stage = 3;
-      Serial.println(stage);
-    }
-
-    if (side == 2 && mapLeft() > 500 && stage == 2) {
-      readEncoders();
-      motors.setSpeeds(0, 0);
-      stage = 3;
-      Serial.println(stage);
-    }
-
-    // Stage 3
-    if (stage == 3 && side == 1) {
-
-      distLine = ((countsLeft + countsRight) / 2.0) / 910.0 * 11.466;
-      angleLine = radToDeg(atan(distLine / distSensor)) * (-1.0);
-      stage = 4;
-      lcd.clear();
-      lcd.print(angleLine);
-    }
-
-    if (stage == 3 && side == 2) {
-
-      distLine = ((countsLeft + countsRight) / 2.0) / 910.0 * 11.466;
-      angleLine = radToDeg(atan(distLine / distSensor)) * 1.07;
-      stage = 4;
-      lcd.clear();
-      lcd.print(angleLine);
-    }
-  }
-}
-
-void readGyro() {
-
-  if (imu.gyroDataReady() == true) {
-    // Read all IMU sensors: Gyro, Mag, Acc
-    imu.read();
-
-    // Calculate time since last messuremant
-    time_now = micros();
-    delta_time = (time_now - last_time);
-    last_time = time_now;
-
-    // imu.g.z returns a value in 0.07 deg / sek
-    turn_rate = (imu.g.z + gyro_cal);
-
-    rotation_deg = turn_rate * delta_time / 1000000.0 * 0.07;
-    accumulated_rotation_deg += rotation_deg;
-  }
-}
-
-int turnByAngle(int movementParameter) {
-  accumulated_rotation_deg = 0;
-
-  if (movementParameter < 0) {
-    motors.setSpeeds(100, -100);
-    while (accumulated_rotation_deg > movementParameter) {
-      delay(10);
-      readGyro();
-    }
-  } else {
-    motors.setSpeeds(-100, 100);
-    while (accumulated_rotation_deg < movementParameter) {
-      delay(10);
-      readGyro();
-    }
-  }
-}
-
-
-void selectAngle() {
-  readEncoders();
-  currentCount = 0;
-
-  while (buttonA.isPressed() == false) {
-    readEncoders();
-    if (countsRight < -5) {
-      currentCount++;
-      resetEncoders();
-      displayAngle();
-
-
-    } else if (countsRight > 5) {
-      currentCount--;
-      resetEncoders();
-      displayAngle();
-    }
-  }
-}
-
-void displayAngle() {
-  int printAngle = currentCount * (-1);  //Changes direction
 
   lcd.clear();
-  lcd.gotoXY(0, 0);
-  lcd.print("Angle:");
-  lcd.gotoXY(0, 1);
-  lcd.print(printAngle);
+  turnSensorReset();
 }
 
+void turnSensorReset()
+{
+  gyroLastUpdate = micros();
+  turnAngle = 0;
+}
 
-void setup() {
-  displayAngle();
-  selectAngle();
-  // Init 3 linsensors
-  lineSensors.initThreeSensors();
+void turnSensorUpdate()
+{
+  imu.readGyro();
+  turnRate = imu.g.z - gyroOffset;
 
-  //start serial 9600
-  Serial.begin(9600);
+  uint16_t m = micros();
+  uint16_t dt = m - gyroLastUpdate;
+  gyroLastUpdate = m;
 
-  // Clear display
-  lcd.clear();
+  int32_t d = (int32_t)turnRate * dt;
 
-  // start wire to cumunicate with gyro
-  Wire.begin();
+  turnAngle += (int64_t)d * 14680064 / 17578125;
+}
 
-  // Initialise Gyro
-  imu.init();
-  imu.configureForTurnSensing();
-  delay(200);
+uint32_t getTurnAngleInDegrees(){
+  turnSensorUpdate();
+  return (((uint32_t)turnAngle >> 16) * 360) >> 16;
+}
 
-  // Print to Oled
-  lcd.print("Gyro");
-  Serial.println("Do not move Zumo, gyro calibration");
-  delay(200);
-
-  // Cal gyro
-  gyro_cal = calGyro() * (-1);
-
-  // Calibrate line sensors for background
-  lcd.clear();
-  lcd.print("Board");
-
-  int32_t lineTotals[3] = { 0, 0, 0 };
-
-  for (uint16_t i = 0; i < 500; i++) {
-
-    readLineSensors();
-    lineTotals[0] += lineSensorValues[0];
-    lineTotals[1] += lineSensorValues[1];
-    lineTotals[2] += lineSensorValues[2];
-    delay(5);
+void selectAngle(){
+    readEncodersDegree();
+  if (movementTurn < 0){
+    movementTurn = 0;
   }
-
-  lineSensorCal[0] = lineTotals[0] / 500;
-  lineSensorCal[1] = lineTotals[1] / 500;
-  lineSensorCal[2] = lineTotals[2] / 500;
-
-  // move to tape
-  lcd.clear();
-  lcd.print("Tape");
-
-  Serial.println("Move to tape and press A");
-  buttonA.waitForPress();
-  buttonA.waitForRelease();  // wait till the button is released
-
-  delay(200);
-
-  // Calibrate line sensors for tape values
-
-  int32_t lineTotalsTape[3] = { 0, 0, 0 };
-
-  for (uint16_t i = 0; i < 500; i++) {
-
-    readLineSensors();
-    lineTotalsTape[0] += lineSensorValues[0];
-    lineTotalsTape[1] += lineSensorValues[1];
-    lineTotalsTape[2] += lineSensorValues[2];
-    delay(5);
+  else if (movementTurn > maxAngle){
+    movementTurn = maxAngle;
   }
+  LCDSelectDegree();
+}
 
-  lineSensorCalT[0] = lineTotalsTape[0] / 500;
-  lineSensorCalT[1] = lineTotalsTape[1] / 500;
-  lineSensorCalT[2] = lineTotalsTape[2] / 500;
-
-  // Done
-
-  lcd.clear();
-  lcd.print("Done");
-
-  Serial.println("Done press A");
-  buttonA.waitForPress();
-  buttonA.waitForRelease();  // wait till the button is released
+void stop(){
+  motors.setSpeeds(0,0);
 }
 
 void loop() {
-  // Read sensors
-  readLineSensors();
+  // put your main code here, to run repeatedly:
+  turnByAngle();
+  stop();
 
-  // Get angle to line
-  if (stage < 4) {
-    allign();
-  }
-
-  // Turn parralel to line
-  if (stage == 4) {
-    if (t == 0) {
-      start = millis();
-      t = 1;
-      accumulated_rotation_deg = 0;
-    }
-    readGyro();
-    turn();
-  }
-
-
-
-  // drive straight
-  if (stage == 5) {
-
-    // Set angle to 0
-    if (t == 0) {
-      start = millis();
-      t = 1;
-      accumulated_rotation_deg = 0;
-    }
-
-    // Read the gyro
-    readGyro();
-
-    error = accumulated_rotation_deg;
-
-    // Ajust motorspeeds to drive streight
-    updateMotorsToDriveStraight();
-    lcd.gotoXY(0, 1);
-    lcd.print(accumulated_rotation_deg);
-    lcd.gotoXY(0, 0);
-  }
-
-  if (stage == 5 && millis() - start > 400 && (mapMiddel() > 500 || mapLeft() > 500 || mapRight() > 500)) {
-    // Stop program
-    motors.setSpeeds(0, 0);
-    stage = 10;
-    lcd.clear();
-    lcd.print("Press A");
-  }
-
-
-
-  if (buttonA.isPressed() == true) {
-    stage = 1;
-    t = 0;
-    buttonA.waitForRelease();
-    selectAngle();
-  }
 }
