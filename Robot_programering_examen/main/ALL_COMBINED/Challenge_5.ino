@@ -36,7 +36,7 @@ void Program5() {
 void turnRight() {
   //Controls the motors when going clockwise around pilar
 
-  const int distanceToStraightRight = 2240;  //2250
+  const int distanceToStraightRight = 2200;  //2250
   const int straighDistanceRight = 3400;
   if (proxSensors.countsRightWithRightLeds() > 65) {
     motors.setSpeeds(turnSpeedFastMax, turnSpeedFastMin);
@@ -50,7 +50,7 @@ void turnRight() {
 void turnLeft() {
   //Controls the motors when going counter-clockwise around pilar
 
-  int distanceToStraightLeft = 2290;  //2300
+  int distanceToStraightLeft = 2270;  //2300
   int straighDistanceLeft = 3450;
 
   if (proxSensors.countsLeftWithLeftLeds() > 65) {
