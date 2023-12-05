@@ -25,8 +25,6 @@ void setup() {
 
 
 void loop() {
-  proxSensors.read();
-
   switch (Stage) {
     case 0:
       display.clear();
