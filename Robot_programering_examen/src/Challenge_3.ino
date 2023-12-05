@@ -8,19 +8,37 @@ Zumo32U4LineSensors lineSensors;
 Zumo32U4OLED display;
 
 int Stage = 0;
+uint16_t lineSensorValues[3];
+uint16_t brightnessLevel[120];
+uint8_t levelCount = 120;
 
 void setup() {
+  proxSensors.initThreeSensors();
+  lineSensors.initThreeSensors();
+  for (int i = 0; i <= 120; i++) {
+    display.print("Setting up Sensors");
+    brightnessLevel[i] = i;
+  }
+  proxSensors.setBrightnessLevels(brightnessLevel, levelCount);
+  lineSensors.read(lineSensorValues, QTR_EMITTERS_ON);
 }
 
 
 void loop() {
+  proxSensors.read();
+  Serial.print(proxSensors.countsLeftWithLeftLeds());
+  Serial.print("   ");
+  Serial.println(proxSensors.countsRightWithRightLeds());
 
-  if (buttonA.isPressed()) {
-    Stage = 2;
-  }
   switch (Stage) {
+    case 0:
+      display.clear();
+      display.print("Press A");
+      if (buttonA.isPressed()) {
+        Stage = 2;
+      }
+      break;
     case 1:
-      motors.setSpeeds(0, 0);
       break;
 
     case 2:
@@ -29,37 +47,46 @@ void loop() {
   }
 }
 
-
 void wallTurn() {
-#define NUM_SENSORS 6
-  uint16_t lineSensorValues[NUM_SENSORS];
-  int16_t Levels[10] = { 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 };
-  lineSensors.initThreeSensors();
-  proxSensors.initThreeSensors();
-  proxSensors.setBrightnessLevels(Levels, 10);
-  lineSensors.read(lineSensorValues, QTR_EMITTERS_ON);
-  proxSensors.read();
+
+
   display.clear();
+  proxSensors.read();
+
   if (lineSensorValues[1] > 900) {
+    motors.setSpeeds(0, 0);
+    display.clear();
+    display.print("Stop");
     Stage = 1;
   } else if (proxSensors.countsLeftWithLeftLeds() > proxSensors.countsRightWithRightLeds()) {
-    if (proxSensors.countsLeftWithLeftLeds() || proxSensors.countsRightWithRightLeds() == 0) {
+    display.clear();
+    display.print("Right");
+    motors.setSpeeds(400, 200);
+    if (proxSensors.countsLeftWithLeftLeds() == 0 || proxSensors.countsRightWithRightLeds() == 0) {
       if (proxSensors.countsFrontWithLeftLeds() > proxSensors.countsFrontWithRightLeds()) {
-        motors.setSpeeds(350, 200);
+        motors.setSpeeds(400, 200);
+      } else {
+        display.clear();
+        display.print("Forward");
+        motors.setSpeeds(400, 400);
       }
-    } else {
-      motors.setSpeeds(350, 200);
     }
-  } else if (proxSensors.countsRightWithRightLeds() > proxSensors.countsLeftWithLeftLeds() || proxSensors.countsFrontWithRightLeds() > proxSensors.countsFrontWithLeftLeds()) {
-    if (proxSensors.countsRightWithRightLeds() || proxSensors.countsLeftWithLeftLeds() == 0) {
+  } else if (proxSensors.countsRightWithRightLeds() > proxSensors.countsLeftWithLeftLeds()) {
+    display.clear();
+    display.print("Left");
+    motors.setSpeeds(200, 400);
+    if (proxSensors.countsRightWithRightLeds() == 0 || proxSensors.countsLeftWithLeftLeds() == 0) {
       if (proxSensors.countsFrontWithRightLeds() > proxSensors.countsFrontWithLeftLeds()) {
-        motors.setSpeeds(200, 350);
+        motors.setSpeeds(200, 400);
+      } else {
+        display.clear();
+        display.print("Forward");
+        motors.setSpeeds(400, 400);
       }
-    } else {
-      motors.setSpeeds(200, 350);
     }
   } else {
-
-    motors.setSpeeds(350, 350);
+    display.clear();
+    display.print("Forward");
+    motors.setSpeeds(400, 400);
   }
 }
