@@ -21,7 +21,7 @@ int side = 0;
 float angleLine;
 float distLine;
 
-// Distance between linesensors
+// Distance between linesensors in cm
 float distSensor = 9;
 
 // Enconder counts for wheels
@@ -108,8 +108,9 @@ void updateMotorsToDriveStraight() {
 int calGyro() {
 
   for (uint16_t i = 0; i < 3000; i++) {
-    // Wait for new data to be available, then read it.
-    while (!imu.gyroDataReady()) {}
+
+    
+    while (!imu.gyroDataReady()) {} // Wait for new data to be available, then read it.
     imu.readGyro();
 
     // Add the Z axis reading to the total.
@@ -226,12 +227,12 @@ void setup() {
   // Clear display
   lcd.clear();
 
-  // start wire to cumunicate with gyro
+  // start wire to cumunicate with gyro (I2C)
   Wire.begin();
 
   // Initialise Gyro
   imu.init();
-  imu.configureForTurnSensing();
+  imu.configureForTurnSensing(); // from Zumo libery
   delay(1000);
 
   // Print to Oled
@@ -240,7 +241,7 @@ void setup() {
   delay(500);
 
   // Cal gyro
-  gyro_cal = calGyro() * (-1);
+  gyro_cal = calGyro() * (-1); // *(-1) to set gyro data close to 0
 
   // Calibrate line sensors for background
   lcd.clear();
@@ -274,7 +275,7 @@ void setup() {
 
   // Calibrate line sensors for tape values
 
-  int32_t lineTotalsTape[3] = { 0, 0, 0 };
+  int32_t lineTotalsTape[3] = { 0, 0, 0 }; 
 
   for (uint16_t i = 0; i < 500; i++) {
 
@@ -314,13 +315,15 @@ void loop() {
 
   // Turn parralel to line
   if (stage == 4) {
+
+    // Set angle to 0
     if (t == 0) {
       start = millis();
       t = 1;
       accumulated_rotation_deg = 0;
     }
     readGyro();
-    turn();
+    turn(); // Turn the robot so it is parallel to the tape line
   }
 
   // drive streight
