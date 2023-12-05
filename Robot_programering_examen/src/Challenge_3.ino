@@ -26,9 +26,6 @@ void setup() {
 
 void loop() {
   proxSensors.read();
-  Serial.print(proxSensors.countsLeftWithLeftLeds());
-  Serial.print("   ");
-  Serial.println(proxSensors.countsRightWithRightLeds());
 
   switch (Stage) {
     case 0:
