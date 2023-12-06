@@ -42,7 +42,6 @@ int value = 500;
 
 // Gyro cal value
 int gyro_cal = 0;
-
 int32_t total = 0;
 
 int32_t start = 0;
@@ -355,7 +354,7 @@ void loop()
   {
     allign();
   }
-
+ 
   // Turn parralel to line
   while (stage == 4) 
   {
