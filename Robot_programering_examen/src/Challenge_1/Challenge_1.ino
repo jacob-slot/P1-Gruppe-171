@@ -393,7 +393,7 @@ void loop()
       stage = 1;
       t = 0;
       selected = false;
-      resetEncoders()
+      resetEncoders();
       displayChange("CmFromWall", "", "0cm", "");
     }
   }
