@@ -183,8 +183,7 @@ void allign()
       stage = 2;
       side = 1;
     }
-
-    if (mapRight() > value && stage == 1) 
+    else if (mapRight() > value && stage == 1) 
     {
       resetEncoders();
       stage = 2;
@@ -351,11 +350,8 @@ void loop()
     }
   }
 
-  // Read sensors
-  readLineSensors();
-
   // Get angle to line
-  while (stage < 4) 
+  if (stage < 4) 
   {
     allign();
   }
@@ -398,8 +394,7 @@ void loop()
       stage = 1;
       t = 0;
       selected = false;
-      encoders.getCountsAndResetRight();
-      encoders.getCountsAndResetLeft();
+      resetEncoders()
       displayChange("CmFromWall", "", "0cm", "");
     }
   }
