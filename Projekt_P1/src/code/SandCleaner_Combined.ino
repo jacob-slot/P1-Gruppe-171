@@ -507,14 +507,14 @@ void obstacleTurn(float angle) {
 
 
   if (accumulated_rotation_deg_6500 > localAngle) {
-    motors.setSpeeds(90, -90);
+    motors.setSpeeds(80, -80);
   }
 
   if (accumulated_rotation_deg_6500 < localAngle) {
-    motors.setSpeeds(-90, 90);
+    motors.setSpeeds(-80, 80);
   }
 
-  if (abs(accumulated_rotation_deg_6500 - localAngle) < 0.2) {
+  if (abs(accumulated_rotation_deg_6500 - localAngle) < 0.3) {
     motors.setSpeeds(0, 0);
     obstacleStage++;
     runOnce = 0;
